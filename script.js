@@ -1,203 +1,99 @@
-// Smooth scroll behavior
-document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-    anchor.addEventListener('click', function (e) {
-        e.preventDefault();
-        const target = document.querySelector(this.getAttribute('href'));
-        if (target) {
-            target.scrollIntoView({ behavior: 'smooth' });
-        }
-    });
-});
+/* ══════════════════════════════
+   Muhoyyo Alisherovna — script.js
+   ══════════════════════════════ */
 
-// Image Modal Functionality
-const modal = document.getElementById('imageModal');
-const modalImage = document.getElementById('modalImage');
-const closeModal = document.querySelector('.close-modal');
+// ── Image Modal ──────────────────────────────
+const modal    = document.getElementById('imgModal');
+const modalImg = document.getElementById('modalImg');
 
-// Image click to open modal (delegated for reliability)
-function openImageModal(src) {
-    if (!modal || !modalImage || !src) return;
-    modal.style.display = 'block';
-    modalImage.src = src;
+function openModal(src) {
+    if (!modal || !modalImg || !src) return;
+    modalImg.src = src;
+    modal.classList.add('active');
     document.body.style.overflow = 'hidden';
 }
+function closeModal() {
+    modal.classList.remove('active');
+    document.body.style.overflow = '';
+    setTimeout(() => { modalImg.src = ''; }, 300);
+}
 
-document.addEventListener('click', function (e) {
-    const img = e.target.closest ? e.target.closest('.review-img') : null;
+// Click outside image → close
+modal?.addEventListener('click', (e) => {
+    if (e.target === modal) closeModal();
+});
+
+// ESC key → close
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeModal();
+});
+
+// Also support legacy review-img clicks
+document.addEventListener('click', (e) => {
+    const img = e.target.closest('.review-img');
     if (img) {
         const src = img.getAttribute('data-full') || img.src;
-        openImageModal(src);
+        openModal(src);
     }
 });
 
-// Close modal
-function closeImageModal() {
-    modal.style.display = 'none';
-    document.body.style.overflow = 'auto';
-}
-
-if (closeModal) {
-    closeModal.addEventListener('click', closeImageModal);
-}
-
-// allow clicking the modal image to close as well
-if (modalImage) {
-    modalImage.addEventListener('click', closeImageModal);
-}
-
-// Close modal when clicking outside image
-modal.addEventListener('click', function(e) {
-    if (e.target === modal) {
-        closeImageModal();
-    }
-});
-
-// Close modal with Escape key
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-        closeImageModal();
-    }
-});
-
-// Audio Player - Only one plays at a time
-const audioPlayers = document.querySelectorAll('.review-audio');
-
-audioPlayers.forEach(audio => {
-    audio.addEventListener('play', function() {
-        audioPlayers.forEach(otherAudio => {
-            if (otherAudio !== this) {
-                otherAudio.pause();
-            }
+// ── One audio at a time ───────────────────────
+document.addEventListener('play', (e) => {
+    if (e.target.tagName === 'AUDIO') {
+        document.querySelectorAll('audio').forEach(a => {
+            if (a !== e.target) a.pause();
         });
-    });
-});
-
-// Profile card animation on load
-window.addEventListener('load', () => {
-    const profileCard = document.querySelector('.profile-card');
-    if (profileCard) {
-        profileCard.style.opacity = '1';
     }
+}, true);
+
+// ── FAB hover pause animation ─────────────────
+document.querySelectorAll('.fab').forEach(fab => {
+    fab.addEventListener('mouseenter', () => fab.style.animation = 'none');
+    fab.addEventListener('mouseleave', () => fab.style.animation = '');
 });
 
-// Copy Instagram/Telegram username to clipboard
-function copyToClipboard(text) {
-    navigator.clipboard.writeText(text).then(() => {
-        alert('Nusxa qilindi!');
-    }).catch(() => {
-        alert('Nusxa qilishda xatolik!');
-    });
+// ── Ripple effect ─────────────────────────────
+function addRipple(el, e) {
+    const rect  = el.getBoundingClientRect();
+    const size  = Math.max(rect.width, rect.height);
+    const x     = e.clientX - rect.left - size / 2;
+    const y     = e.clientY - rect.top  - size / 2;
+    const span  = document.createElement('span');
+    span.style.cssText = `
+        position:absolute;pointer-events:none;border-radius:50%;
+        width:${size}px;height:${size}px;left:${x}px;top:${y}px;
+        background:rgba(255,255,255,0.25);transform:scale(0);
+        animation:rippleAnim .55s ease-out forwards;
+    `;
+    el.style.position = 'relative';
+    el.style.overflow = 'hidden';
+    el.appendChild(span);
+    setTimeout(() => span.remove(), 600);
 }
 
-// Update profile information
-function updateProfile(data) {
-    const nameElement = document.querySelector('.profile-name');
-    const bioElement = document.querySelector('.profile-bio');
-    const descElement = document.querySelector('.profile-description');
-    const imgElement = document.querySelector('.profile-image img');
+const rippleStyle = document.createElement('style');
+rippleStyle.textContent = '@keyframes rippleAnim{to{transform:scale(4);opacity:0}}';
+document.head.appendChild(rippleStyle);
 
-    if (data.name && nameElement) nameElement.textContent = data.name;
-    if (data.bio && bioElement) bioElement.textContent = data.bio;
-    if (data.description && descElement) descElement.textContent = data.description;
-    if (data.image && imgElement) imgElement.src = data.image;
-}
-
-// Track social media clicks
-document.querySelectorAll('.social-link').forEach(link => {
-    link.addEventListener('click', function() {
-        const platform = this.classList.contains('instagram') ? 'Instagram' : 'Telegram';
-        console.log(`${platform} havolasiga bosindi`);
-    });
+document.querySelectorAll('.cta-btn, .social-pill, .banner-link').forEach(el => {
+    el.addEventListener('click', (e) => addRipple(el, e));
 });
 
-// Floating icons animation
-const floatingIcons = document.querySelectorAll('.float-icon');
-let bounceActive = true;
-
-floatingIcons.forEach(icon => {
-    icon.addEventListener('mouseenter', function() {
-        this.style.animation = 'none';
-    });
-
-    icon.addEventListener('mouseleave', function() {
-        if (bounceActive) {
-            this.style.animation = '';
+// ── Scroll reveal (lightweight) ───────────────
+const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            entry.target.style.opacity = '1';
+            entry.target.style.transform = 'translateY(0)';
         }
     });
+}, { threshold: 0.12 });
+
+document.querySelectorAll('.service-card, .audio-card, .review-photo-item').forEach(el => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(18px)';
+    el.style.transition = 'opacity .45s ease, transform .45s ease';
+    observer.observe(el);
 });
 
-// Responsive adjustments
-function handleResize() {
-    const width = window.innerWidth;
-    const floatingIcons = document.querySelector('.floating-icons');
-    
-    if (width < 600) {
-        if (floatingIcons) {
-            floatingIcons.style.flexDirection = 'row';
-        }
-    } else {
-        if (floatingIcons) {
-            floatingIcons.style.flexDirection = 'column';
-        }
-    }
-}
-
-window.addEventListener('resize', handleResize);
-handleResize();
-
-// Add ripple effect to buttons
-document.querySelectorAll('.social-link, .contact-link, .tag').forEach(element => {
-    element.addEventListener('click', function(e) {
-        const ripple = document.createElement('span');
-        const rect = this.getBoundingClientRect();
-        const size = Math.max(rect.width, rect.height);
-        const x = e.clientX - rect.left - size / 2;
-        const y = e.clientY - rect.top - size / 2;
-
-        ripple.style.width = ripple.style.height = size + 'px';
-        ripple.style.left = x + 'px';
-        ripple.style.top = y + 'px';
-        ripple.classList.add('ripple');
-
-        this.appendChild(ripple);
-
-        setTimeout(() => ripple.remove(), 600);
-    });
-});
-
-// Add ripple animation via CSS
-const style = document.createElement('style');
-style.textContent = `
-    .social-link, .contact-link, .tag {
-        position: relative;
-        overflow: hidden;
-    }
-
-    .ripple {
-        position: absolute;
-        border-radius: 50%;
-        background: rgba(255, 255, 255, 0.6);
-        transform: scale(0);
-        animation: ripple-animation 0.6s ease-out;
-        pointer-events: none;
-    }
-
-    @keyframes ripple-animation {
-        to {
-            transform: scale(4);
-            opacity: 0;
-        }
-    }
-`;
-document.head.appendChild(style);
-
-// Example: How to update profile dynamically
-// Uncomment and modify to use:
-/*
-updateProfile({
-    name: 'Sizning Nomingiz',
-    bio: 'Dasturchi | Ijodkor',
-    description: '🌟 Instagram va Telegram orqali meni kuzatib boring!',
-    image: 'path/to/your/image.jpg'
-});
-*/
+console.log('✅ Muhoyyo Alisherovna — sayt yuklandi!');
